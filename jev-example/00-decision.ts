@@ -4,6 +4,7 @@
  * One request mixes all three question types against the same state, then the
  * code reads each answer by its question name and branches on its type.
  */
+
 import {
 	ZEV_MODEL,
 	choice,
@@ -23,19 +24,20 @@ import {
 
 // Uncalibrated demo thresholds: pick these by evaluating on your own data
 const REFUND_CONFIDENCE_THRESHOLD = 0.75;
-const URGENT_SCORE_THRESHOLD = 2;
+const URGENT_SCORE_THRESHOLD = 1;
+const CHOICE_SCORE_AVG = 0.6;
 
 const req = {
 	model: ZEV_MODEL,
-	state: "我上周申请了退款，请帮我查询一下处理进度。",
+	state: "我上周申请了送样单，请帮我查询一下处理进度。很紧急",
 	questions: {
-		billing: noul("这条消息是否与账单或退款有关？", {
-			true: "涉及付款、账单或退款",
+		billing: noul("这条消息是否与送样订单或送样有关？", {
+			true: "涉及送样、订单",
 			false: "仅涉及产品使用或技术支持",
 		}),
 		category: choice("这条客户留言属于哪一类？", {
-			billing: "账单、付款或退款问题",
-			technical: "产品使用或技术问题",
+			crm: "送样、订单问题",
+			erp: "产品使用或技术问题",
 			other: "其他问题",
 		}),
 		urgency: score("评估需要处理的紧急程度。", [
@@ -75,8 +77,10 @@ try {
 	// Decisions owned by code, not by the model's raw output
 	const isRefund = billingProbability >= REFUND_CONFIDENCE_THRESHOLD;
 	const urgent = urgency.score >= URGENT_SCORE_THRESHOLD;
-	console.log(`\n→ ${isRefund ? "进入退款流程" : "不进入退款流程"}`);
-	console.log(`→ ${urgent ? "优先处理" : "常规处理"}`);
+
+	console.log(`\n→ 进入哪个流程？：${isRefund ? "进入送样流程" : "不进入送样流程"}`);
+	console.log(`→ 那个系统处理？：${category.choice}`);
+	console.log(`→ 处理的紧急程度： ${urgent ? "优先处理" : "常规处理"}`);
 } catch (err) {
 	if (err instanceof ZevAnswerError) {
 		console.log(`→ Answer validation failed (${err.message}), falling back to manual review`);
